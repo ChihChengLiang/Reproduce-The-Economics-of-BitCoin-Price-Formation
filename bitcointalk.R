@@ -35,6 +35,5 @@ bitcointalk <- df_list %>% bind_rows() %>%
   mutate_each(funs(as.numeric), 2:6) %>%
   mutate(date = as.Date(date))
 
-bitcointalk %T>%
-  write.csv("bitcointalk.csv", row.names = F) %>%
-  save(file="bitcointalk.rda")
+bitcointalk %>% write.csv("bitcointalk.csv", row.names = F)
+saveRDS(bitcointalk,"bitcointalk.rda")

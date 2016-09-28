@@ -49,6 +49,7 @@ wiki_views_combined <- wiki_views_latest %>%
   bind_rows(wiki_views) %>%
   arrange(date)
 
-wiki_views_combined %T>%
-  write.csv("wiki_views.csv", row.names = F) %>%
-  save(file="wiki_views.rda")
+wiki_views_combined %>%
+  write.csv("wiki_views.csv", row.names = F)
+
+saveRDS(wiki_views_combined, file="wiki_views.rda")
