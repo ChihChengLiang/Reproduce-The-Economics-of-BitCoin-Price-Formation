@@ -13,7 +13,11 @@ totbc <- Quandl("BCHAIN/TOTBC")
 ntran <- Quandl("BCHAIN/NTRAN")
 naddu <- Quandl("BCHAIN/NADDU")
 bcdde <- Quandl("BCHAIN/BCDDE")
+exrate <- Quandl("ECB/EURUSD")
+oil_price <- Quandl("EIA/PET_RBRTE_D")
+dj <- Quandl("YAHOO/INDEX_DJI")
 
 save(
-  list = c("bcdde", "mkpru", "naddu", "ntran", "totbc"),
+  list = c("bcdde", "mkpru", "naddu", "ntran", "totbc",
+           "exrate", "oil_price", "dj"),
   file = "quandl_data.rda")
