@@ -1,3 +1,4 @@
+
 # According to Kristoufek 2013 the data comes from
 # http://stats.grok.se . However, the data ends at
 # Jan 2016.
@@ -38,6 +39,19 @@ wiki_views <- df_list %>%
   mutate(date = ymd(date)) %>%
   filter(!is.na(date)) %>%
   arrange(date)
+
+wiki_views %>% write.csv("wiki_views_stats.grok.se.csv",row.names = F)
+
+url <- "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/Bitcoin/daily/2015070100/2016092700"
+wmflabs_json <- url %>% fromJSON()
+
+wiki_views_wmflabs <- wmflabs_json$items %>%
+  mutate(date = as.Date(timestamp, format = "%Y%m%d00")) %>%
+  select(date, views)
+
+wiki_views_wmflabs %>% write.csv("wiki_views_wmflabs.csv", row.names = F)
+saveRDS(wiki_views_wmflabs, "wiki_views_wmflabs.rda")
+
 
 wiki_views_latest <- read.csv(
   "pageviews-20150701-20160927.csv", stringsAsFactors = F) %>%
