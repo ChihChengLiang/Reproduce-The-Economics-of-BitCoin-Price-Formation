@@ -1,8 +1,9 @@
 library(dplyr)
+source("utils.R")
 
-load("quandl_data.rda")
-bitcointalk <- readRDS("bitcointalk.rda")
-wiki_views <- readRDS("wiki_views.rda")
+load("data/quandl_data.rda")
+bitcointalk <- readRDS("data/bitcointalk.rda")
+wiki_views <- readRDS("data/wiki_views_combined.rda")
 
 all_data <- mkpru %>%
   rename(mkpru = Value) %>%
@@ -17,7 +18,7 @@ all_data <- mkpru %>%
   inner_join(exrate, by = "Date") %>%
   rename(exrate = Value) %>%
   inner_join(wiki_views, by = c("Date"="date")) %>%
-  rename(wiki_views = view) %>%
+  rename(wiki_views = views) %>%
   inner_join(
     bitcointalk %>% select(date, new_members, new_posts),
     by=c("Date"="date")
@@ -28,5 +29,4 @@ all_data <- mkpru %>%
     dj %>% select(Date, dj = `Adjusted Close`),
     by = "Date")
 
-all_data %>% write.csv("all_data.csv", row.names = F)
-saveRDS(all_data, "all_data.rda")
+all_data %>% save_data("all_data")
