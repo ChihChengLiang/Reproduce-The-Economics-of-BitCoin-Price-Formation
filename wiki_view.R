@@ -52,5 +52,5 @@ wiki_views_wmflabs <- wmflabs_json$items %>%
   mutate(date = as.Date(timestamp, format = "%Y%m%d00")) %>%
   select(date, views)
 
-wiki_views_wmflabs %>% save_data("wiki_views_vmflabs")
+wiki_views_wmflabs %>% save_data("wiki_views_wmflabs")
 
