@@ -9,6 +9,8 @@ library(jsonlite)
 library(dplyr)
 library(pbapply)
 library(lubridate)
+library(ggplot2)
+library(tidyr)
 source("utils.R")
 
 extract_data <- function(yyyymm){
@@ -19,7 +21,7 @@ extract_data <- function(yyyymm){
     unlist %>%
     data.frame(
       date = names(.),
-      view = .,
+      views = .,
       row.names = NULL,
       stringsAsFactors = F)
   return(df)
@@ -54,3 +56,30 @@ wiki_views_wmflabs <- wmflabs_json$items %>%
 
 wiki_views_wmflabs %>% save_data("wiki_views_wmflabs")
 
+
+# Now we need a resonable way to combine wiki view data
+# from stats.grok.se and from tools.wmflabs.org
+
+intersection_df <- wiki_views %>%
+  inner_join(wiki_views_wmflabs, by="date", suffix = c(".grok.se", ".wmflabs"))
+
+cor(intersection_df$views.grok.se, intersection_df$views.wmflabs)
+
+model <- lm(data = intersection_df, formula = views.grok.se ~ views.wmflabs + 0)
+
+scale <- model$coefficients[[1]]
+
+# Visualization shows the scaled views fit good and look satisfying :)
+intersection_df %>%
+  mutate(scaled_views.wmflabs = views.wmflabs* scale) %>%
+  gather(key = "source", value = "views", -date) %>%
+  ggplot(aes(x= date, y = views, color = source)) +
+  geom_line()
+
+wiki_views_combined <- wiki_views_wmflabs %>%
+  filter(date > "2015-12-31") %>%
+  mutate(views = views * scale) %>%
+  bind_rows(wiki_views) %>%
+  arrange(date)
+
+wiki_views_combined %>% save_data("wiki_views_combined")
