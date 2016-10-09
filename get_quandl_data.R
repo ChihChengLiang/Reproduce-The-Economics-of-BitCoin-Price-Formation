@@ -20,4 +20,4 @@ dj <- Quandl("YAHOO/INDEX_DJI")
 save(
   list = c("bcdde", "mkpru", "naddu", "ntran", "totbc",
            "exrate", "oil_price", "dj"),
-  file = "quandl_data.rda")
+  file = "data/quandl_data.rda")
