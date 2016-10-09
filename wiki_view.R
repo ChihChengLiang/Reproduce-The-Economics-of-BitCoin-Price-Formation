@@ -1,4 +1,3 @@
-
 # According to Kristoufek 2013 the data comes from
 # http://stats.grok.se . However, the data ends at
 # Jan 2016.
@@ -10,6 +9,7 @@ library(jsonlite)
 library(dplyr)
 library(pbapply)
 library(lubridate)
+source("utils.R")
 
 extract_data <- function(yyyymm){
   url <- paste0("http://stats.grok.se/json/en/",
@@ -40,7 +40,10 @@ wiki_views <- df_list %>%
   filter(!is.na(date)) %>%
   arrange(date)
 
-wiki_views %>% write.csv("wiki_views_stats.grok.se.csv",row.names = F)
+wiki_views %>% save_data("wiki_views_stats.grok.se")
+
+# I use the api to extract content in
+# https://tools.wmflabs.org/pageviews/?project=en.wikipedia.org&platform=all-access&agent=user&start=2015-07-01&end=2016-09-27&pages=Bitcoin
 
 url <- "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/user/Bitcoin/daily/2015070100/2016092700"
 wmflabs_json <- url %>% fromJSON()
@@ -49,21 +52,5 @@ wiki_views_wmflabs <- wmflabs_json$items %>%
   mutate(date = as.Date(timestamp, format = "%Y%m%d00")) %>%
   select(date, views)
 
-wiki_views_wmflabs %>% write.csv("wiki_views_wmflabs.csv", row.names = F)
-saveRDS(wiki_views_wmflabs, "wiki_views_wmflabs.rda")
+wiki_views_wmflabs %>% save_data("wiki_views_vmflabs")
 
-
-wiki_views_latest <- read.csv(
-  "pageviews-20150701-20160927.csv", stringsAsFactors = F) %>%
-  select(date=Date, view=Bitcoin) %>%
-  mutate(date = ymd(date))
-
-wiki_views_combined <- wiki_views_latest %>%
-  filter(date> "2015-12-31") %>%
-  bind_rows(wiki_views) %>%
-  arrange(date)
-
-wiki_views_combined %>%
-  write.csv("wiki_views.csv", row.names = F)
-
-saveRDS(wiki_views_combined, file="wiki_views.rda")
