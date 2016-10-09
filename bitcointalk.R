@@ -1,7 +1,9 @@
 library(lubridate)
 library(httr)
-library(xml2)
+library(rvest)
 library(dplyr)
+library(pbapply)
+source("utils.R")
 
 extract_data <- function(yyyymm){
   url <- paste0(
@@ -30,10 +32,9 @@ dates <- seq(
   by = "1 month") %>%
   format("%Y%m")
 
-df_list <- dates %>% lapply(extract_data)
+df_list <- dates %>% pblapply(extract_data)
 bitcointalk <- df_list %>% bind_rows() %>%
   mutate_each(funs(as.numeric), 2:6) %>%
   mutate(date = as.Date(date))
 
-bitcointalk %>% write.csv("bitcointalk.csv", row.names = F)
-saveRDS(bitcointalk,"bitcointalk.rda")
+bitcointalk %>% save_data("bitcointalk")
