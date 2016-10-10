@@ -12,6 +12,10 @@ mkpru <- Quandl("BCHAIN/NADDU")
 totbc <- Quandl("BCHAIN/TOTBC")
 ntran <- Quandl("BCHAIN/NTRAN")
 naddu <- Quandl("BCHAIN/NADDU")
+
+
+# Bitcoin days destroyed is no longer maintained
+# https://www.reddit.com/r/Bitcoin/comments/4u5ap4/blockchaininfo_removed_the_bitcoin_days_destroyed/
 bcdde <- Quandl("BCHAIN/BCDDE")
 exrate <- Quandl("ECB/EURUSD")
 oil_price <- Quandl("EIA/PET_RBRTE_D")
