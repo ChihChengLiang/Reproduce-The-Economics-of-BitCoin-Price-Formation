@@ -1,0 +1,99 @@
+---
+title: 'Reproduce: The Economics of BitCoin Price Formation'
+author: "Chin-Cheng Liang"
+date: "September 28, 2016"
+output: html_document
+bibliography: citations.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = F,
+  message = F)
+```
+
+```{r import}
+library(dplyr)
+library(tseries)
+library(rlist)
+library(knitr)
+library(urca)
+library(ggplot2)
+library(tidyr)
+```
+
+
+
+
+重製 [ @Ciaian2014]
+
+比特幣貨幣供給：
+
+$$M^S = P^B B $$
+
+貨幣需求
+
+$$M^D = \frac{PY}{V}$$
+
+在貨幣供給與貨幣需求交叉時，隱含下式成立
+
+$$ P^B = \frac{PY}{VB}$$
+
+取 log 後
+
+$$ p^B_t = \beta_0 +\beta_1 p_t +\beta_2 y_t +\beta_3 v_t +\beta_4 b_t + \epsilon_t$$
+
+
+
+```{r load_data}
+all_data <- readRDS("data/all_data.rda")
+all_data <- all_data %>% filter(Date<"2014-3-31")
+all_data %>% glimpse()
+```
+
+```{r vis}
+all_data %>%
+  gather(key = "column", value="value", -Date, factor_key = T) %>%
+  ggplot(aes(x= Date, y= value)) +
+  geom_line() +
+  facet_wrap(~column, scales = "free_y", ncol = 3)
+```
+
+
+### 做 ADF 與 PP
+
+- TODO 使用 AIC 決定落後期數
+
+論文上面表示所有序列都不平穩
+
+> Both tests show that all the time series are non-stationary in levels but stationary in first differences (results of the tests are available upon request from authors).
+
+```{r adf}
+apply_stationary_test <- function(df, test) df %>%
+  select_if(is.numeric) %>%
+  lapply(test) %>%
+  list.rbind() %>%
+  as.data.frame() %>%
+  .[,1:5]
+
+all_data %>% apply_stationary_test(adf.test) %>% kable
+```
+
+```{r pp}
+all_data %>% apply_stationary_test(pp.test) %>% kable
+```
+
+```{r}
+first_diff_df <- all_data %>% select(-Date) %>% lapply(diff) %>% bind_cols()
+first_diff_df %>% apply_stationary_test(adf.test) %>% kable
+first_diff_df %>% apply_stationary_test(pp.test) %>% kable
+```
+
+### Co-integration Test
+
+```{r}
+# all_data %>% select(-Date) %>% ca.jo(type="eigen", K=2, ecdet="none", spec="longrun")
+```
+
+
