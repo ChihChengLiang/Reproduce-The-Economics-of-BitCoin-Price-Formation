@@ -21,6 +21,8 @@ library(knitr)
 library(urca)
 library(ggplot2)
 library(tidyr)
+library(magrittr)
+library(corrr)
 ```
 
 
@@ -48,7 +50,7 @@ $$ p^B_t = \beta_0 +\beta_1 p_t +\beta_2 y_t +\beta_3 v_t +\beta_4 b_t + \epsilo
 
 ```{r load_data}
 all_data <- readRDS("data/all_data.rda")
-all_data <- all_data %>% filter(Date<"2014-3-31")
+all_data <- all_data %>% filter(Date<"2014-12-31")
 all_data %>% glimpse()
 ```
 
@@ -58,6 +60,11 @@ all_data %>%
   ggplot(aes(x= Date, y= value)) +
   geom_line() +
   facet_wrap(~column, scales = "free_y", ncol = 3)
+```
+
+```{r cor}
+pretty_cor <- . %>% correlate() %>% shave %>% fashion() %>% kable(align = "r")
+all_data %>% select(-Date, -mkpru) %>% pretty_cor
 ```
 
 
