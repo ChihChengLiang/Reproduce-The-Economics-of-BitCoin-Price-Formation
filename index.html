@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Chin-Cheng Liang" />
+
+<meta name="date" content="2016-09-28" />
+
+<title>Reproduce: The Economics of BitCoin Price Formation</title>
+
+<script src="index_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="index_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="index_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="index_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="index_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="index_files/navigation-1.1/tabsets.js"></script>
+<link href="index_files/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="index_files/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Reproduce: The Economics of BitCoin Price Formation</h1>
+<h4 class="author"><em>Chin-Cheng Liang</em></h4>
+<h4 class="date"><em>September 28, 2016</em></h4>
+
+</div>
+
+
+<pre class="r"><code>library(dplyr)
+library(tseries)
+library(rlist)
+library(knitr)
+library(urca)
+library(ggplot2)
+library(tidyr)
+library(magrittr)
+library(corrr)</code></pre>
+<p>重製 <span class="citation">(Ciaian, Rajcaniova, and Kancs 2014)</span></p>
+<p>比特幣貨幣供給：</p>
+<p><span class="math display">\[M^S = P^B B \]</span></p>
+<p>貨幣需求</p>
+<p><span class="math display">\[M^D = \frac{PY}{V}\]</span></p>
+<p>在貨幣供給與貨幣需求交叉時，隱含下式成立</p>
+<p><span class="math display">\[ P^B = \frac{PY}{VB}\]</span></p>
+<p>取 log 後</p>
+<p><span class="math display">\[ p^B_t = \beta_0 +\beta_1 p_t +\beta_2 y_t +\beta_3 v_t +\beta_4 b_t + \epsilon_t\]</span></p>
+<pre class="r"><code>all_data &lt;- readRDS(&quot;data/all_data.rda&quot;)
+all_data &lt;- all_data %&gt;% filter(Date&lt;&quot;2014-12-31&quot;)
+all_data %&gt;% glimpse()</code></pre>
+<pre><code>## Observations: 1,264
+## Variables: 12
+## $ Date        &lt;date&gt; 2014-12-30, 2014-12-29, 2014-12-24, 2014-12-23, 2...
+## $ mkpru       &lt;dbl&gt; 181005, 159314, 174711, 210726, 195624, 160502, 22...
+## $ totbc       &lt;dbl&gt; 13666700, 13663050, 13642825, 13639050, 13635000, ...
+## $ ntran       &lt;dbl&gt; 85247, 79812, 89515, 99770, 89437, 92052, 103161, ...
+## $ naddu       &lt;dbl&gt; 181005, 159314, 174711, 210726, 195624, 160502, 22...
+## $ bcdde       &lt;dbl&gt; 16810168, 3589855, 27154619, 3800448, 5495943, 449...
+## $ exrate      &lt;dbl&gt; 1.2160, 1.2197, 1.2219, 1.2213, 1.2259, 1.2279, 1....
+## $ wiki_views  &lt;dbl&gt; 6162, 9927, 3904, 4752, 5168, 4905, 5563, 6328, 69...
+## $ new_members &lt;dbl&gt; 301, 297, 231, 271, 285, 272, 376, 307, 286, 285, ...
+## $ new_posts   &lt;dbl&gt; 9460, 9538, 8451, 9903, 10031, 9884, 10509, 11248,...
+## $ oil_price   &lt;dbl&gt; 55.60, 57.86, 58.67, 59.07, 58.31, 58.87, 58.81, 5...
+## $ dj          &lt;dbl&gt; 17983.07, 18038.23, 18030.21, 18024.17, 17959.44, ...</code></pre>
+<pre class="r"><code>all_data %&gt;%
+  gather(key = &quot;column&quot;, value=&quot;value&quot;, -Date, factor_key = T) %&gt;%
+  ggplot(aes(x= Date, y= value)) +
+  geom_line() +
+  facet_wrap(~column, scales = &quot;free_y&quot;, ncol = 3)</code></pre>
+<p><img src="index_files/figure-html/vis-1.png" width="672" /></p>
+<pre class="r"><code>pretty_cor &lt;- . %&gt;% correlate() %&gt;% shave %&gt;% fashion() %&gt;% kable(align = &quot;r&quot;)
+all_data %&gt;% select(-Date, -mkpru) %&gt;% pretty_cor</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">rowname</th>
+<th align="right">totbc</th>
+<th align="right">ntran</th>
+<th align="right">naddu</th>
+<th align="right">bcdde</th>
+<th align="right">exrate</th>
+<th align="right">wiki_views</th>
+<th align="right">new_members</th>
+<th align="right">new_posts</th>
+<th align="right">oil_price</th>
+<th align="right">dj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">totbc</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="even">
+<td align="right">ntran</td>
+<td align="right">.90</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="odd">
+<td align="right">naddu</td>
+<td align="right">.82</td>
+<td align="right">.93</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="even">
+<td align="right">bcdde</td>
+<td align="right">.29</td>
+<td align="right">.30</td>
+<td align="right">.27</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="odd">
+<td align="right">exrate</td>
+<td align="right">-.24</td>
+<td align="right">-.24</td>
+<td align="right">-.13</td>
+<td align="right">.00</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="even">
+<td align="right">wiki_views</td>
+<td align="right">.44</td>
+<td align="right">.50</td>
+<td align="right">.48</td>
+<td align="right">.43</td>
+<td align="right">.08</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="odd">
+<td align="right">new_members</td>
+<td align="right">.43</td>
+<td align="right">.47</td>
+<td align="right">.52</td>
+<td align="right">.49</td>
+<td align="right">.12</td>
+<td align="right">.57</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="even">
+<td align="right">new_posts</td>
+<td align="right">.77</td>
+<td align="right">.83</td>
+<td align="right">.91</td>
+<td align="right">.26</td>
+<td align="right">.04</td>
+<td align="right">.56</td>
+<td align="right">.61</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="odd">
+<td align="right">oil_price</td>
+<td align="right">.46</td>
+<td align="right">.15</td>
+<td align="right">.05</td>
+<td align="right">.15</td>
+<td align="right">.25</td>
+<td align="right">.22</td>
+<td align="right">.18</td>
+<td align="right">.20</td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="even">
+<td align="right">dj</td>
+<td align="right">.93</td>
+<td align="right">.94</td>
+<td align="right">.92</td>
+<td align="right">.28</td>
+<td align="right">-.14</td>
+<td align="right">.46</td>
+<td align="right">.48</td>
+<td align="right">.87</td>
+<td align="right">.29</td>
+<td align="right"></td>
+</tr>
+</tbody>
+</table>
+<div id="-adf--pp" class="section level3">
+<h3>做 ADF 與 PP</h3>
+<ul>
+<li>TODO 使用 AIC 決定落後期數</li>
+</ul>
+<p>論文上面表示所有序列都不平穩</p>
+<blockquote>
+<p>Both tests show that all the time series are non-stationary in levels but stationary in first differences (results of the tests are available upon request from authors).</p>
+</blockquote>
+<pre class="r"><code>apply_stationary_test &lt;- function(df, test) df %&gt;%
+  select_if(is.numeric) %&gt;%
+  lapply(test) %&gt;%
+  list.rbind() %&gt;%
+  as.data.frame() %&gt;%
+  .[,1:5]
+
+all_data %&gt;% apply_stationary_test(adf.test) %&gt;% kable</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">statistic</th>
+<th align="left">parameter</th>
+<th align="left">alternative</th>
+<th align="left">p.value</th>
+<th align="left">method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mkpru</td>
+<td align="left">-2.029021</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.5660283</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>totbc</td>
+<td align="left">-1.461064</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.8064528</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>ntran</td>
+<td align="left">-2.70011</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.2819463</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>naddu</td>
+<td align="left">-2.029021</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.5660283</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>bcdde</td>
+<td align="left">-8.684171</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>exrate</td>
+<td align="left">-2.113085</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.5304425</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>wiki_views</td>
+<td align="left">-4.528032</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>new_members</td>
+<td align="left">-4.897156</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>new_posts</td>
+<td align="left">-1.798901</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.6634413</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>oil_price</td>
+<td align="left">-3.643006</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.02854341</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>dj</td>
+<td align="left">-3.192426</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.08922365</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>all_data %&gt;% apply_stationary_test(pp.test) %&gt;% kable</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">statistic</th>
+<th align="left">parameter</th>
+<th align="left">alternative</th>
+<th align="left">p.value</th>
+<th align="left">method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mkpru</td>
+<td align="left">-27.9347</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01354644</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>totbc</td>
+<td align="left">-0.5681851</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.99</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>ntran</td>
+<td align="left">-92.09774</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>naddu</td>
+<td align="left">-27.9347</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01354644</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>bcdde</td>
+<td align="left">-924.5475</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>exrate</td>
+<td align="left">-10.26176</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.5373211</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>wiki_views</td>
+<td align="left">-134.5997</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>new_members</td>
+<td align="left">-869.9306</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>new_posts</td>
+<td align="left">-13.40014</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.3622546</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>oil_price</td>
+<td align="left">-14.12571</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.3217809</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>dj</td>
+<td align="left">-25.01554</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.0242203</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>first_diff_df &lt;- all_data %&gt;% select(-Date) %&gt;% lapply(diff) %&gt;% bind_cols()
+first_diff_df %&gt;% apply_stationary_test(adf.test) %&gt;% kable</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">statistic</th>
+<th align="left">parameter</th>
+<th align="left">alternative</th>
+<th align="left">p.value</th>
+<th align="left">method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mkpru</td>
+<td align="left">-12.80136</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>totbc</td>
+<td align="left">-6.467923</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>ntran</td>
+<td align="left">-13.62754</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>naddu</td>
+<td align="left">-12.80136</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>bcdde</td>
+<td align="left">-17.23255</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>exrate</td>
+<td align="left">-9.786337</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>wiki_views</td>
+<td align="left">-14.50567</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>new_members</td>
+<td align="left">-15.66745</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>new_posts</td>
+<td align="left">-11.15824</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="even">
+<td>oil_price</td>
+<td align="left">-10.48832</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+<tr class="odd">
+<td>dj</td>
+<td align="left">-10.71333</td>
+<td align="left">10</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Augmented Dickey-Fuller Test</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>first_diff_df %&gt;% apply_stationary_test(pp.test) %&gt;% kable</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">statistic</th>
+<th align="left">parameter</th>
+<th align="left">alternative</th>
+<th align="left">p.value</th>
+<th align="left">method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mkpru</td>
+<td align="left">-1305.826</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>totbc</td>
+<td align="left">-1466.206</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>ntran</td>
+<td align="left">-1243.034</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>naddu</td>
+<td align="left">-1305.826</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>bcdde</td>
+<td align="left">-1284.579</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>exrate</td>
+<td align="left">-1304.655</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>wiki_views</td>
+<td align="left">-1001.555</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>new_members</td>
+<td align="left">-1461.68</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>new_posts</td>
+<td align="left">-1179.383</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="even">
+<td>oil_price</td>
+<td align="left">-1260.413</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+<tr class="odd">
+<td>dj</td>
+<td align="left">-1302.082</td>
+<td align="left">7</td>
+<td align="left">stationary</td>
+<td align="left">0.01</td>
+<td align="left">Phillips-Perron Unit Root Test</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="co-integration-test" class="section level3">
+<h3>Co-integration Test</h3>
+<pre class="r"><code># all_data %&gt;% select(-Date) %&gt;% ca.jo(type=&quot;eigen&quot;, K=2, ecdet=&quot;none&quot;, spec=&quot;longrun&quot;)</code></pre>
+<div id="refs" class="references">
+<div id="ref-Ciaian2014">
+<p>Ciaian, Pavel, Miroslava Rajcaniova, and D’Artis Kancs. 2014. “The Economics of BitCoin Price Formation,” May. <a href="http://arxiv.org/abs/1405.4498" class="uri">http://arxiv.org/abs/1405.4498</a>.</p>
+</div>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
