@@ -4,3 +4,4 @@
 .Ruserdata
 api_key
 *.html
+.DS_Store

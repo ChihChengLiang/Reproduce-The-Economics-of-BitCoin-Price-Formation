@@ -2,7 +2,9 @@
 title: 'Reproduce: The Economics of BitCoin Price Formation'
 author: "Chin-Cheng Liang"
 date: "September 28, 2016"
-output: html_document
+output:
+  html_document:
+    self_contained: false
 bibliography: citations.bib
 ---
 
